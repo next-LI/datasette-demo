@@ -1,0 +1,20 @@
+header .nav-menu-inner a {
+    display: unset;
+}
+
+.rows-and-columns {
+	width: 100%;
+}
+
+ol, ul {
+    margin-left: 1.5rem;
+}
+
+ol {
+    list-style: decimal;
+}
+
+ul {
+	list-style: circle;
+	margin-bottom: 1.5rem;
+}

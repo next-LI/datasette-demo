@@ -1,0 +1,28 @@
+version: '3.4'
+
+services:
+  server:
+    restart: unless-stopped
+    build:
+      context: .
+      target: datasette
+    command:
+      /usr/local/bin/datasette serve . --root --load-extension=spatialite --metadata config/metadata.yml -h 0.0.0.0 -p 8000
+    ports:
+      - 8000:8000
+    environment:
+      PYTHONUNBUFFERED: 1
+      DEPLOY_GITHUB_TOKEN: ${DEPLOY_GITHUB_TOKEN}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+    # we're not volumizing csvs/ because they're not available
+    # during the build and we might want to bundle the data with
+    # the docker container
+    volumes:
+      - .:/datasette
+    networks:
+      - dev
+
+networks:
+  dev:
+    driver: bridge

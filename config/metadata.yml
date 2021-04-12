@@ -1,0 +1,14 @@
+plugins:
+  datasette-auth-github:
+    client_id:
+      "$env": "GITHUB_CLIENT_ID"
+    client_secret:
+      "$env": "GITHUB_CLIENT_SECRET"
+  datasette-csv-importer:
+    csvs_path: "./csvs"
+    database_path: "."
+    use_db_metadata: true
+    use_live_permissions: true
+
+extra_css_urls:
+  - /static/css/nextli.css
