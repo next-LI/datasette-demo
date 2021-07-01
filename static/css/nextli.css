@@ -6,12 +6,17 @@ header .nav-menu-inner a {
 	width: 100%;
 }
 
-ol, ul {
+.content ol, .content ul {
     margin-left: 1.5rem;
 }
 
 ol {
     list-style: decimal;
+    margin-left: 1.5rem;
+}
+
+.nav-menu-inner ul {
+    list-style: none;
 }
 
 ul {
