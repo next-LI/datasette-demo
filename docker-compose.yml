@@ -7,7 +7,7 @@ services:
       context: .
       target: datasette
     command:
-      /usr/local/bin/datasette serve . --root --load-extension=spatialite --metadata config/metadata.yml -h 0.0.0.0 -p 8000
+      /usr/local/bin/datasette serve . --root --load-extension=spatialite --setting default_page_size 25 --metadata config/metadata.yml -h 0.0.0.0 -p 8000
     ports:
       - 8000:8000
     environment:

@@ -26,9 +26,8 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y 
 
 RUN pip3 install git+https://github.com/next-LI/datasette.git
-# .. then (re)install them
-RUN datasette install shapefile-to-sqlite csvs-to-sqlite datasette-auth-github datasette-leaflet datasette-leaflet-geojson datasette-leaflet-freedraw datasette-export-notebook datasette-configure-fts datasette-render-images datasette-vega datasette-show-errors datasette-saved-queries
-RUN datasette install git+https://github.com/next-LI/datasette-search-all.git
+
+RUN datasette install csvs-to-sqlite datasette-auth-github datasette-leaflet datasette-leaflet-geojson datasette-leaflet-freedraw datasette-export-notebook datasette-configure-fts datasette-render-images datasette-vega datasette-show-errors datasette-saved-queries datasette-geojson datasette-geojson-map
 RUN datasette install git+https://github.com/next-LI/datasette-csv-importer.git
 RUN datasette install git+https://github.com/next-LI/datasette-live-permissions.git
 RUN datasette install git+https://github.com/next-LI/datasette-live-config.git
@@ -39,4 +38,4 @@ FROM base as datasette
 WORKDIR /datasette
 EXPOSE 8000
 VOLUME /datasette
-CMD /usr/local/bin/datasette  serve . --load-extension=spatialite --metadata config/metadata.yml -h 0.0.0.0 -p 8000
+CMD /usr/local/bin/datasette  serve . --load-extension=spatialite --setting default_page_size 25 --metadata config/metadata.yml -h 0.0.0.0 -p 8000

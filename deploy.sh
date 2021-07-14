@@ -44,8 +44,7 @@ pip3 install git+https://github.com/next-LI/datasette.git
 # wipe unused/uninstalled plugins
 pip3 uninstall --yes $(pip3 list | grep -e '^datasette\-'| awk '{print $1}')
 # .. then (re)install them
-datasette install csvs-to-sqlite datasette-auth-github datasette-leaflet datasette-leaflet-geojson datasette-leaflet-freedraw datasette-export-notebook datasette-configure-fts datasette-render-images datasette-vega datasette-show-errors datasette-saved-queries datasette-geojson datasette-geojson-map
-datasette install git+https://github.com/next-LI/datasette-search-all.git
+datasette install csvs-to-sqlite datasette-auth-github datasette-leaflet datasette-leaflet-geojson datasette-leaflet-freedraw datasette-export-notebook datasette-configure-fts datasette-render-images datasette-vega datasette-show-errors datasette-saved-queries datasette-geojson datasette-geojson-map datasette-write
 datasette install git+https://github.com/next-LI/datasette-csv-importer.git
 datasette install git+https://github.com/next-LI/datasette-live-permissions.git
 datasette install git+https://github.com/next-LI/datasette-live-config.git
