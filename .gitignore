@@ -139,3 +139,7 @@ csvs/
 config/metadata.*.yml
 secrets/*
 !secrets/env.template.sh
+
+# ignore dogsheep configs for now
+dogsheep/index.db
+dogsheep/config.*

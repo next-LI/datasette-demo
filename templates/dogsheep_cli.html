@@ -1,0 +1,170 @@
+{% macro title_case(text) %}{{ text[0]|upper}}{{text[1:] }}{% endmacro %}
+{% macro get_mapping(table, key) %}{{ table.get('mappings', {}).get(key,'') }}{% endmacro %}
+{% macro default_conditions(table, table_name) %}{% if table.get('conditions') %}{{ table['conditions'] }}{% elif not table_name.startswith("[") %}from [{{ table_name }}]{% else %}from {{ table_name }}{% endif %}{% endmacro %}
+<!doctype html>
+<html>
+  <head>
+    <style>
+    .columns code {
+      padding: 0 5px;
+      background-color: #eee;
+    }
+    .desc, td.desc {
+      color: gray;
+      font-style: italic;
+    }
+    td.desc {
+      padding-left: 5px;
+    }
+    .sql-query {
+      font-family: monospace;
+      min-width: 500px;
+      min-height: 150px;
+    }
+    h3, h4 {
+      margin-top: 25px;
+    }
+    .toggle {
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .toggle:hover {
+      text-decoration: underline;
+    }
+    </style>
+
+    <script>
+      const stopit = (e) => {
+        console.log("HI");
+        e.preventDefault();
+        e.stopPropagation();
+      };
+      // window.onsubmit = stopit;
+      // document.querySelector("input[type='submit']").onclick = stopit;
+
+      document.toggle_sql = (id, e) => {
+        const disp = document.getElementById(id).style.display;
+        document.getElementById(id).style.display = disp === 'unset' ? 'none' : 'unset';
+      };
+
+      document.updateValue = (e) => {
+        window.target = e.target;
+        const value = e.target.value;
+        const key = e.target.attributes.name.value.split(".").pop();
+        console.log("New value", value, "for search index key", key);
+        //                    input -> td         -> tr         -> tbody      -> table      -> wrapper div
+        const wrapper_div = e.target.parentElement.parentElement.parentElement.parentElement.parentElement;
+        console.log("wrapper_div", wrapper_div);
+        window.wrapper_div = wrapper_div;
+        const sql_textarea = wrapper_div.querySelector(".sql-query");
+        console.log("sql_textarea", sql_textarea)
+        window.sql_textarea = sql_textarea;
+
+        const query_parts = [
+          "select",
+        ];
+        wrapper_div.querySelectorAll("input").forEach((el) => {
+          const search_key = el.attributes.name.value.split(".").pop();
+          console.log("search_key", search_key);
+          const search_keys = [
+            "key",
+            "title",
+            "timestamp",
+            "search_1",
+          ];
+          if (search_keys.indexOf(search_key) === -1) return;
+          if (!el.value) return;
+          query_parts.push(`[${el.value}] as ${search_key}`);
+        });
+
+        query_parts.push(wrapper_div.querySelector(".sql-condition").value);
+        sql_textarea.innerText = query_parts.join(" ");
+      };
+
+      /**
+       * TODO: Listen for change to an input box, rebuild the appropriate SQL query.
+       */
+      document.querySelectorAll("td");
+
+      /**
+       * TODO: Add a switch button that lets people go from column mapper to SQL direct input.
+       */
+      document.querySelectorAll("button.show-sql");
+      document.querySelectorAll("button.hide-sql");
+    </script>
+
+  </head>
+  <body>
+    <form id="dogsheep-cli" action="/-/dogsheep-cli" method="post">
+      <h1>Dogsheep configuration</h1>
+      <h2>Indexes</h2>
+      <div>
+      {% for db_name, db in index_data.items() %}
+        <h3>DB: {{ db_name }}</h3>
+        <div>
+        {% for table_name, table in db.items() %}
+          <h4>Table: {{ table_name }}</h4>
+          {% if table.get('columns') %}
+          <p class="columns">
+            Available columns:
+            {% for col in table['columns'] %}
+              <code>{{ col.name }}</code>
+            {% endfor %}
+          </p>
+          {% else %}
+          <p class="desc">No columns found for this dogsheep config</p>
+          {% endif %}
+          <div class="sql-mappings">
+            <table>
+              <thead>
+                <tr>
+                  <th>Search index column</th>
+                  <th>Equivalent table column</th>
+                  <th>Field mapping descripion</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for key, placeholder in default_sql_fields.items() %}
+                <tr>
+                  <td class="key">
+                    {{ title_case(key) }}
+                  </td>
+                  <td class="mapping">
+                    <input class="col-mapping"
+                           type="text"
+                           oninput="updateValue(event)"
+                           name="index_data.{{db_name}}.{{table_name}}.mappings.{{ key }}"
+                           value="{{ get_mapping(table, key) }}" />
+                  </td>
+                  <td class="desc">
+                    {{ placeholder }}
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            <br />
+            <label for="index_data.{{db_name}}.{{table_name}}.conditions">SQL from condition</label>
+            <input name="index_data.{{db_name}}.{{table_name}}.conditions"
+                   class="sql-condition"
+                   value="{{ default_conditions(table, table_name) }}" />
+            <br />
+            <span class="toggle"
+                  onclick="toggle_sql('index_data.{{db_name}}.{{table_name}}.sql')">Toggle SQL editor</span>
+            <br />
+            <textarea style="display: none"
+                      class="sql-query"
+                      rows=20 cols=72
+                      id="index_data.{{db_name}}.{{table_name}}.sql"
+                      name="index_data.{{db_name}}.{{table_name}}.sql">{{ table['sql']|e }}</textarea>
+          </div>
+        {% endfor %}
+        </div>
+      {% endfor %}
+      </div>
+      <input type="hidden" name="csrftoken" value="{{ csrftoken() }}" />
+      <input type="submit" value="Save" />
+    </form>
+  </body>
+
+</html>
