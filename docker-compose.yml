@@ -23,6 +23,15 @@ services:
     networks:
       - dev
 
+  litestream:
+    restart: unless-stopped
+    image: litestream/litestream
+    volumes:
+      - .:/datasette
+      - ./secrets/litestream.yml:/etc/litestream.yml
+    command:
+      replicate
+
 networks:
   dev:
     driver: bridge
