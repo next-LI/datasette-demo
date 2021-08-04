@@ -140,6 +140,10 @@ config/metadata.*.yml
 secrets/*
 !secrets/env.template.sh
 
+# sqlite WAL mode files
+*.db-shm
+*.db-wal
+
 # ignore dogsheep configs for now
 dogsheep/index.db
 dogsheep/config.*

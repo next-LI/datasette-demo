@@ -4,16 +4,25 @@ import os
 import re
 import urllib.parse
 import yaml
+import json
+import sqlite3
+from sqlite_utils import Database
 
 from datasette import hookimpl
 from datasette.utils.asgi import Response
+# COLUMNS: dict (key => data_type)
+# CATEGORIES: list of dicts: {"id": 1, "name": "created"}
+from dogsheep_beta.utils import COLUMNS
 
 
-default_sql_fields = {
+help_text = {
     "key": "A unique (within that type) primary key",
     "title": "The title for the item",
-    "timestamp": "An ISO8601 timestamp, e.g. 2020-09-02T21:00:21",
     "search_1": "A larger chunk of text to be included in the search index",
+    "search_2": "Another text field to index",
+    "search_3": "Another text field to index",
+    "timestamp": "An ISO8601 timestamp, e.g. 2020-09-02T21:00:21",
+
     "category": "An integer category ID, matching a category ID in Dogsheep's categories table",
     "is_public": "An integer (0 or 1, defaults to 0 if not set) specifying if this is public or not",
 }
@@ -117,6 +126,17 @@ def convert_sql_to_maps(sql):
     return conditions, col_maps
 
 
+def get_dogsheep_categories(db_path):
+    index_db = Database(sqlite3.connect(db_path))
+    categories = []
+    for row in index_db.execute("select * from categories"):
+        categories.append({
+            "id": row[0],
+            "name": row[1],
+        })
+    return categories
+
+
 async def dogsheep_cli(scope, receive, datasette, request):
     db_path = os.path.join("dogsheep", "index.db")
     cfg_path = os.path.join("dogsheep", "config.yml")
@@ -124,37 +144,37 @@ async def dogsheep_cli(scope, receive, datasette, request):
     if request.method == "POST":
         return await handle_post(db_path, cfg_path, request, datasette)
 
-    # db name -> table name -> index mapping data
-    index_data = yaml.load(open(cfg_path, "r"), Loader=yaml.SafeLoader)
+    config = yaml.load(open(cfg_path, "r"), Loader=yaml.SafeLoader)
+
+    # db name -> table/view name -> columns
+    dbs = {}
     for db_name, db in datasette.databases.items():
         if db.is_memory:
             continue
 
-        if db.path not in index_data:
-            index_data[db.path] = {}
+        if db.path not in dbs:
+            print("db.path", db.path)
+            dbs[db.path] = {}
 
-        for name in await db.table_names():
+        for name in (await db.table_names()) + (await db.view_names()):
             if await ignore_table(db, name):
                 continue
 
-            if not index_data[db.path].get(name):
-                index_data[db.path][name] = {}
-
-            sql = index_data[db.path][name].get('sql')
-            if sql and sql.endswith(managed_str):
-                conditions, maps = convert_sql_to_maps(sql)
-                index_data[db.path][name]["mappings"] = maps
-                index_data[db.path][name]["conditions"] = conditions
-
-            index_data[db.path][name]["columns"] = await db.execute(
+            results = await db.execute(
                 f"PRAGMA table_info('{name}');"
             )
+            dbs[db.path][name] = [ r['name'] for r in results.rows ]
 
+    dogsheep_columns = list(COLUMNS.keys())
+    dogsheep_categories = get_dogsheep_categories(db_path)
     return Response.html(
         await datasette.render_template(
             "dogsheep_cli.html", {
-                "index_data": index_data,
-                "default_sql_fields": default_sql_fields,
+                "config": json.dumps(config),
+                "dbs": json.dumps(dbs),
+                "help_text": json.dumps(help_text),
+                "dogsheep_columns": json.dumps(dogsheep_columns),
+                "dogsheep_categories": json.dumps(dogsheep_categories)
             }, request=request
         )
     )
