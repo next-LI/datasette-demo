@@ -84,6 +84,34 @@ class App extends Component {
     new_rule_name: '',
   };
 
+  strip_colname(og_col) {
+    if (!og_col) return '';
+    let col = og_col;
+    if (col.startsWith("[")) col = col.slice(1,);
+    if (col.endsWith("]")) col = col.slice(0,-1);
+    col = col.replace('\\[', '[').replace('\\]', ']')
+    return col;
+  }
+
+  compare_colnames(cola, colb) {
+    if (this.strip_colname(cola) === this.strip_colname(colb)) return true;
+    return false;
+  }
+
+  mapping_changed(db_name, rule_name, index_col, mappings, from_clause, e) {
+    mappings[index_col] = e.target.value; // index_col => new table_col
+    const column_sql = Object.entries(mappings).map(([icol, tcol]) => {
+      if (tcol.match(/\s/)) {
+        if (tcol.startsWith("[")) tcol = tcol.slice(1,);
+        if (tcol.endsWith("]")) tcol = tcol.slice(0,-1);
+        tcol = tcol.replace('[', '\\[').replace(']', '\\]')
+      }
+      return `[${tcol}] as ${icol}`;
+    }).join(", ");
+    const sql = `select ${column_sql} from ${from_clause}`;
+    this.props.config[db_name][rule_name].sql = sql;
+  }
+
   get_option(value, label, selected) {
     if (selected)
       return html`<option value="${value}" selected>${label}</option>`;
@@ -91,12 +119,13 @@ class App extends Component {
       return html`<option value="${value}">${label}</option>`;
   }
 
-  table_row(index_col, table_col, available_table_columns) {
+  table_row(index_col, table_col, available_table_columns,
+            mappings, from_clause, db_name, rule_name) {
     const title_case = (s) => s[0] + s.slice(1,s.length);
     const placeholder = this.props.help_text[index_col];
     const html_options = available_table_columns.map((col) => {
       let selected = false;
-      if (table_col === col) {
+      if (this.compare_colnames(table_col, col)) {
         selected = true;
       }
       return this.get_option(col, title_case(col), selected);
@@ -108,7 +137,9 @@ class App extends Component {
 				</div> 
       </td>
       <td class="mapping">
-        <select name=${index_col}>
+        <select name=${index_col} onChange=${(e) => {
+          this.mapping_changed(db_name, rule_name, index_col, mappings, from_clause, e);
+        }}>
           <option value="">-</option>
           ${html_options}
         </select>
@@ -204,7 +235,7 @@ class App extends Component {
     }}>${toggle_msg}</button>`;
   }
 
-  column_mapper(available_table_columns, sql) {
+  column_mapper(available_table_columns, sql, db_name, rule_name) {
     const { mappings=[], from_clause='' } = try_parse_query(sql);
     const mappable_fields = [
       "key",
@@ -216,7 +247,10 @@ class App extends Component {
     ];
     const html_opts = mappable_fields.map((index_col) => {
       const table_col = mappings[index_col];
-      return this.table_row(index_col, table_col, available_table_columns);
+      return this.table_row(
+        index_col, table_col, available_table_columns,
+        mappings, from_clause, db_name, rule_name
+      );
     });
     return html`<div>
       <table>
@@ -245,7 +279,7 @@ class App extends Component {
     const available_table_columns = this.props.dbs[db_name][rule_name] || [];
     let editor = null;
     if (db_state && db_state[rule_name] === COL_MAP) {
-      editor = this.column_mapper(available_table_columns, sql);
+      editor = this.column_mapper(available_table_columns, sql, db_name, rule_name);
     } else {
       editor = this.sql_editor(db_name, rule_name, sql, available_table_columns);
     }
