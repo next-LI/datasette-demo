@@ -77,10 +77,6 @@ Object.entries(props.dbs).map(([db_name, tables]) => {
   });
 });
 
-props.name = "world";
-window.PROPS = props;
-window.EDITOR_STATE = editor_state;
-
 class App extends Component {
   state = { editor: editor_state };
 
@@ -186,7 +182,7 @@ class App extends Component {
     }
 
     return html`<div>
-      <h3>${rule_name}</h3>
+      <h3>Rule: ${rule_name}</h3>
       ${editor}
       <br/>
       ${toggle}
@@ -199,7 +195,7 @@ class App extends Component {
       rule_editors.push(this.rule_editor.call(this, db_name, rule_name, sql));
     })
     return html`<div>
-      <h2>${db_name}</h2>
+      <h2>Database: ${db_name}</h2>
       ${rule_editors}
     </div>`;
   }
@@ -208,7 +204,23 @@ class App extends Component {
     this.props = props;
     const rules = Object.entries(props.config).map(this.db_config.bind(this));
     return html`<div>
-      <h1>Hello ${props.name}!</h1>
+      <h1>Dogsheep Search Index Config</h1>
+      <p>Dogsheep is a search index for the data in this datasette instance!
+      This is an interface allowing you to edit the indexing settings. Things
+      that you add here will be turned into possible search results.
+      </p>
+      <p><b>How it works</b></p>
+      <p>Each database can have any number of index <i>rules</i>. Rules are 
+      bascally queries that get ran against the database, the results of
+      which will be available as search results. A rule is typically
+      named after a table or database view, but it doesn't have to be.
+      You are free to use the SQL editor directly and use complicated
+      cross-table joins and even cross-DB queries. One thing to remember
+      is that search results will be given a name based on the database
+      name and the rule name. So if you give your rule a wild name, don't
+      be surprised when your results show up under that name, even if it's
+      just pulling records from a table!
+      </p>
       ${rules}
     </div>`;
   }
