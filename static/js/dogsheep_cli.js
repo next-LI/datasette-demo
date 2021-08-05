@@ -11,22 +11,21 @@ const COL_MAP = 2;
  * have to use the SQL query editor.
  */
 function try_parse_query(sql) {
+  if (!sql) return {};
   // split columns from "from ______" part of the query
   const matches = sql.replace(
     /[\n\r]+/g, ' '
   ).match(
     /select\s+(.*)\s+from\s+(.*)/i
   );
-  if (matches.length !== 3) {
-    console.error("Couldn't parse SQL:", sql);
-    return;
+  if (!matches || matches.length !== 3) {
+    return {};
   }
   const [_, row_mappings, from_clause ] = matches;
   const mappings_array = row_mappings.split(/,\s?/).map((mapping) => {
     const [ table, index ] = mapping.split(/\s+as\s+/i);
     if (!table || !index) {
-      console.error("Couldn't parse mapping:", mapping);
-      return;
+      return {};
     }
     return {
       "index_col": index,
@@ -78,7 +77,12 @@ Object.entries(props.dbs).map(([db_name, tables]) => {
 });
 
 class App extends Component {
-  state = { editor: editor_state };
+  state = {
+    editor: editor_state,
+    // db_name (only one open at a time)
+    rule_adder_opened: null,
+    new_rule_name: '',
+  };
 
   get_option(value, label, selected) {
     if (selected)
@@ -97,11 +101,11 @@ class App extends Component {
       }
       return this.get_option(col, title_case(col), selected);
     });
-    return html`<tr>
-      <td class="key">
-        <div class="tooltip">${title_case(index_col)}
-          <span class="tooltiptext">${placeholder}</span>
-        </div>
+     return html`<tr>
+      <td>
+				<div class="tooltip">${title_case(index_col)}
+					<span class="tooltiptext">${placeholder}</span>
+				</div> 
       </td>
       <td class="mapping">
         <select name=${index_col}>
@@ -110,6 +114,72 @@ class App extends Component {
         </select>
       </td>
     </tr>`;
+  }
+
+  onInput = (key, e) => {
+    const { value } = e.target;
+    this.setState({
+      [key]: value
+    })
+  }
+
+  remove_rule(db_name, rule_name) {
+    delete this.props.config[db_name][rule_name];
+    const newEditor = Object.assign({}, this.state.editor);
+    delete newEditor[db_name][rule_name];
+    this.setState({
+      editor: newEditor
+    });
+  }
+
+  add_rule(db_name) {
+    const rule_name = this.state.new_rule_name;
+    this.props.config[db_name][rule_name] = {sql: ''};
+    const newEditor = Object.assign({}, this.state.editor);
+    newEditor[db_name][rule_name] = SQL;
+    this.setState({
+      editor: newEditor,
+      new_rule_name: '',
+      rule_adder_opened: db_name,
+    });
+    setTimeout(() => {
+      document.getElementById(`${db_name}--${rule_name}`).scrollIntoView();
+    }, 250);
+  }
+
+  rule_adder(db_name) {
+    if (this.state.rule_adder_opened === db_name) {
+      // show the rule adder UI
+      let avail_tables = Object.keys(this.props.dbs[db_name]).map((name) => {
+        return html`<code>${name}</code> `;
+      });
+      if (avail_tables && avail_tables.length) {
+        avail_tables = html`<div class='columns'>
+          <b>Tables/views in database:</b> ${avail_tables}
+        </div>`;
+      }
+
+      return html`<div>
+        ${avail_tables}
+        <input type="text"
+          value=${this.state.new_rule_name}
+          onInput=${this.onInput.bind(this, 'new_rule_name')} />
+        <button onClick=${this.add_rule.bind(this, db_name)}>Save</button>
+        <button onClick=${() => {
+          this.setState({
+            rule_adder_opened: null
+          });
+        }}>Cancel</button>
+      </div>`;
+    }
+
+    // show a button to open the rule new adder
+    return html`<button onClick=${() => {
+      this.setState({
+        new_rule_name: '',
+        rule_adder_opened: db_name,
+      });
+    }}>Add new rule</button>`;
   }
 
   toggle_editor(db_name, rule_name) {
@@ -125,13 +195,17 @@ class App extends Component {
   }
 
   show_toggle_btn(db_name, rule_name) {
+    let toggle_msg = "Use column mapper";
+    if (this.state.editor[db_name][rule_name] === COL_MAP) {
+      toggle_msg = "Use SQL editor";
+    }
     return html`<button onClick=${() => {
       this.toggle_editor(db_name, rule_name);
-    }}>Use column mapper</button>`;
+    }}>${toggle_msg}</button>`;
   }
 
   column_mapper(available_table_columns, sql) {
-    const { mappings, from_clause } = try_parse_query(sql);
+    const { mappings=[], from_clause='' } = try_parse_query(sql);
     const mappable_fields = [
       "key",
       "title",
@@ -181,8 +255,23 @@ class App extends Component {
       toggle = this.show_toggle_btn(db_name, rule_name);
     }
 
+    let show_columns = null;
+    if (available_table_columns && available_table_columns.length) {
+      show_columns = available_table_columns.map((col) => {
+        return html`<code>${col}</code> `;
+      });
+      show_columns = html`<div class='columns'>
+        <b>Available columns for table '${rule_name}':</b>
+        <br/>
+        ${show_columns}
+      </div>`;
+    }
     return html`<div>
-      <h3>Rule: ${rule_name}</h3>
+      <h3 id="${db_name}--${rule_name}">Rule: ${rule_name}</h3>
+      <button onClick=${() => {
+        this.remove_rule(db_name, rule_name)
+      }}>Remove rule ${rule_name}</button>
+      ${show_columns}
       ${editor}
       <br/>
       ${toggle}
@@ -196,7 +285,15 @@ class App extends Component {
     })
     return html`<div>
       <h2>Database: ${db_name}</h2>
+      ${this.rule_adder(db_name)}
       ${rule_editors}
+    </div>`;
+  }
+
+  controls() {
+    const controls = Object.entries(this.props.dbs).map((db_name) => {
+    }).filter(x=>x);
+    return html`<div>
     </div>`;
   }
 

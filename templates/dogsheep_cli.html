@@ -4,6 +4,7 @@
     <style>
     .columns code {
       padding: 0 5px;
+      margin: 0 5px;
       background-color: #eee;
     }
     .desc, td.desc {
@@ -30,6 +31,38 @@
     }
     </style>
 
+    <style>
+    /* Tooltip container */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      border-bottom: 1px dotted grey; /* If you want dots under the hoverable text */
+    }
+
+    /* Tooltip text */
+    .tooltip .tooltiptext {
+      min-width: 250px;
+      background-color: white;
+      border: 1px solid grey;
+      color: #444;
+      text-align: center;
+      padding: 5px 0;
+      border-radius: 6px;
+     
+      /* Position the tooltip text - see examples below! */
+      position: absolute;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 1s;
+    }
+
+    /* Show the tooltip text when you mouse over the tooltip container */
+    .tooltip:hover .tooltiptext {
+      opacity: 1;
+    }
+    </style>
+
+
     <script id="props" type="text/props">
       {
         "csrftoken": "{{csrftoken()}}",
@@ -42,57 +75,6 @@
     </script>
 
     <script  type="module" src="/static/js/dogsheep_cli.js"></script>
-
-    <script>
-/*
-      const stopit = (e) => {
-        console.log("HI");
-        e.preventDefault();
-        e.stopPropagation();
-      };
-      // window.onsubmit = stopit;
-      // document.querySelector("input[type='submit']").onclick = stopit;
-
-      document.toggle_sql = (id, e) => {
-        const disp = document.getElementById(id).style.display;
-        document.getElementById(id).style.display = disp === 'unset' ? 'none' : 'unset';
-      };
-
-      document.updateValue = (e) => {
-        window.target = e.target;
-        const value = e.target.value;
-        const key = e.target.attributes.name.value.split(".").pop();
-        console.log("New value", value, "for search index key", key);
-        //                    input -> td         -> tr         -> tbody      -> table      -> wrapper div
-        const wrapper_div = e.target.parentElement.parentElement.parentElement.parentElement.parentElement;
-        console.log("wrapper_div", wrapper_div);
-        window.wrapper_div = wrapper_div;
-        const sql_textarea = wrapper_div.querySelector(".sql-query");
-        console.log("sql_textarea", sql_textarea)
-        window.sql_textarea = sql_textarea;
-
-        const query_parts = [
-          "select",
-        ];
-        wrapper_div.querySelectorAll("input").forEach((el) => {
-          const search_key = el.attributes.name.value.split(".").pop();
-          console.log("search_key", search_key);
-          const search_keys = [
-            "key",
-            "title",
-            "timestamp",
-            "search_1",
-          ];
-          if (search_keys.indexOf(search_key) === -1) return;
-          if (!el.value) return;
-          query_parts.push(`[${el.value}] as ${search_key}`);
-        });
-
-        query_parts.push(wrapper_div.querySelector(".sql-condition").value);
-        sql_textarea.innerText = query_parts.join(" ");
-      };
- */
-    </script>
 
   </head>
   <body></body>
