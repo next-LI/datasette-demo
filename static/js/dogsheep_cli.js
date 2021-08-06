@@ -342,6 +342,32 @@ class App extends Component {
     </div>`;
   }
 
+  config_editor() {
+    let raw_code = null;
+    let btn_text = "Show raw config";
+    const cfg_json = JSON.stringify(this.state.config, null, 2);
+    if (this.state.show_config) {
+      btn_text = "Hide raw config";
+      raw_code = html`<textarea name="config" rows=20 cols=80>${cfg_json}</textarea>`;
+    } else {
+      raw_code = html`<input type="hidden" name="config" value="${cfg_json}" />`;
+    }
+    return html`<div>
+      <form method="post">
+        ${raw_code}
+        <input type="hidden" name="csrftoken" value="${this.props.csrftoken}" />
+        <input type="submit" value="Save config" />
+        <button onClick=${(e) => {
+          this.setState({
+            show_config: !this.state.show_config
+          });
+          e.preventDefault();
+          e.stopPropagation();
+        }}>${btn_text}</button>
+      </form>
+    </div>`;
+  }
+
   render(props, state) {
     this.props = props;
     const rules = Object.keys(this.props.dbs).map((db_name) => {
@@ -365,9 +391,7 @@ class App extends Component {
       be surprised when your results show up under that name, even if it's
       just pulling records from a table!
       </p>
-      <pre>
-      ${JSON.stringify(this.state.config, null, 2)}
-      </pre>
+      ${this.config_editor()}
       ${rules}
     </div>`;
   }

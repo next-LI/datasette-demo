@@ -57,9 +57,8 @@ def menu_links(datasette, actor):
 
 async def run_async_cli(args):
     # https://stackoverflow.com/questions/636561/how-can-i-run-an-external-command-asynchronously-from-python
-    print(f"Running: {args}")
     proc = await asyncio.create_subprocess_exec(
-        *args,
+        *filter(lambda x: x, args),
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
@@ -72,9 +71,9 @@ async def handle_post(db_path, cfg_path, request, datasette):
     # tokenize = "--tokenize none"
 
     # db name -> table name -> index mapping data
-    post_body = await request.post_body()
-    index_data = yaml.load(post_body, Loader=yaml.SafeLoader)
-    index_data.pop("csrftoken", "")
+    post_vars = await request.post_vars()
+    index_json_str = post_vars['config'].strip()
+    index_data = yaml.load(index_json_str, Loader=yaml.SafeLoader)
 
     # TODO: write index_data (new dogsheep config)
     # with open(cfg_path, "w") as f:
@@ -82,10 +81,14 @@ async def handle_post(db_path, cfg_path, request, datasette):
 
     args = ["dogsheep-beta", "index", db_path, cfg_path, tokenize]
     stdout, stderr = await run_async_cli(args)
+    stdout_block = ''
+    if stderr:
+        stdout_block = f'<b>Dogsheep Error Log:</b><br/><pre>{stdout}</pre>'
     return Response.html(f"""
-        <pre>{stderr}</pre>
-        <br/>
-        <pre>{stdout}</pre>
+        <h1>Dogsheep Run Log</h1>
+        <b>Logs:</b><br/>
+        <pre>{stderr}</pre><br/>
+        {stdout_block}
     """)
 
 
@@ -153,7 +156,6 @@ async def dogsheep_cli(scope, receive, datasette, request):
             continue
 
         if db.path not in dbs:
-            print("db.path", db.path)
             dbs[db.path] = {}
 
         for name in (await db.table_names()) + (await db.view_names()):
