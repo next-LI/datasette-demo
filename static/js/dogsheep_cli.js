@@ -75,10 +75,13 @@ Object.entries(props.dbs).map(([db_name, tables]) => {
     return;
   });
 });
+const config_state = props['config'];
+delete props['config'];
 
 class App extends Component {
   state = {
     editor: editor_state,
+    config: config_state,
     // db_name (only one open at a time)
     rule_adder_opened: null,
     new_rule_name: '',
@@ -109,7 +112,11 @@ class App extends Component {
       return `[${tcol}] as ${icol}`;
     }).join(", ");
     const sql = `select ${column_sql} from ${from_clause}`;
-    this.props.config[db_name][rule_name].sql = sql;
+    const newConfig = Object.assign({}, this.state.config);
+    newConfig[db_name][rule_name].sql = sql;
+    this.setState({
+      config: newConfig
+    });
   }
 
   get_option(value, label, selected) {
@@ -155,21 +162,25 @@ class App extends Component {
   }
 
   remove_rule(db_name, rule_name) {
-    delete this.props.config[db_name][rule_name];
+    const newConfig = Object.assign({}, this.state.config);
+    delete newConfig[db_name][rule_name];
     const newEditor = Object.assign({}, this.state.editor);
     delete newEditor[db_name][rule_name];
     this.setState({
-      editor: newEditor
+      editor: newEditor,
+      config: newConfig,
     });
   }
 
   add_rule(db_name) {
     const rule_name = this.state.new_rule_name;
-    this.props.config[db_name][rule_name] = {sql: ''};
+    const newConfig = Object.assign({}, this.state.config);
+    newConfig[db_name][rule_name] = {sql: ''};
     const newEditor = Object.assign({}, this.state.editor);
     newEditor[db_name][rule_name] = SQL;
     this.setState({
       editor: newEditor,
+      config: newConfig,
       new_rule_name: '',
       rule_adder_opened: db_name,
     });
@@ -312,7 +323,14 @@ class App extends Component {
     </div>`;
   }
 
-  db_config([db_name, rules]) {
+  db_config(db_name, rules) {
+    if (!this.state.config[db_name]) {
+      return html`<div>
+        <h2>Database: ${db_name}</h2>
+        <p>No indexes have been set for this database.</p>
+      </div>`;
+    }
+
     const rule_editors = [];
     Object.entries(rules).forEach(([rule_name, {sql}]) => {
       rule_editors.push(this.rule_editor.call(this, db_name, rule_name, sql));
@@ -324,16 +342,11 @@ class App extends Component {
     </div>`;
   }
 
-  controls() {
-    const controls = Object.entries(this.props.dbs).map((db_name) => {
-    }).filter(x=>x);
-    return html`<div>
-    </div>`;
-  }
-
   render(props, state) {
     this.props = props;
-    const rules = Object.entries(props.config).map(this.db_config.bind(this));
+    const rules = Object.keys(this.props.dbs).map((db_name) => {
+      return this.db_config(db_name, state.config[db_name]);
+    }).filter(x=>x);
     return html`<div>
       <h1>Dogsheep Search Index Config</h1>
       <p>Dogsheep is a search index for the data in this datasette instance!
@@ -352,6 +365,9 @@ class App extends Component {
       be surprised when your results show up under that name, even if it's
       just pulling records from a table!
       </p>
+      <pre>
+      ${JSON.stringify(this.state.config, null, 2)}
+      </pre>
       ${rules}
     </div>`;
   }
