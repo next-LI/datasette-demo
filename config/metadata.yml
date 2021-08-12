@@ -9,6 +9,10 @@ plugins:
     database_path: "."
     use_db_metadata: true
     use_live_permissions: true
+  datasette-auth-existing-cookies:
+    api_url: "/user"
+    auth_redirect_url: "/accounts/login"
+    original_cookies: ["sessionid"]
 
 extra_css_urls:
   - /static/css/nextli.css

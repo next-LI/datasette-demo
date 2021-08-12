@@ -7,7 +7,7 @@ services:
       context: .
       target: datasette
     command:
-      /usr/local/bin/datasette serve . --root --load-extension=spatialite --setting default_page_size 25 --metadata config/metadata.yml -h 0.0.0.0 -p 8000
+      /usr/local/bin/datasette serve . --crossdb --root --load-extension=spatialite --setting default_page_size 25 --metadata config/metadata.yml -h 0.0.0.0 -p 8000
     ports:
       - 8000:8000
     environment:
@@ -20,6 +20,22 @@ services:
     # the docker container
     volumes:
       - .:/datasette
+    networks:
+      - dev
+
+  django:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile.django
+    command: python manage.py runserver 0.0.0.0:8001
+    # TODO: remove later, use internal
+    ports:
+      - 8001:8001
+    environment:
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./secrets/sqlite3.db:/app/sqlite3.db
     networks:
       - dev
 
